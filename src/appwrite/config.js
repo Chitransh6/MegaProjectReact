@@ -26,7 +26,7 @@ export class Service{
                 content,
                 featuredImage,
                 status,
-                userId,
+               userid : userId,
             }
         )
        } catch (error) {
@@ -34,24 +34,19 @@ export class Service{
        }
     }
 
-    async updatePost(slug, {title,content, featuredImage, status}){
-        try {
-            return await this.databases.updateDocument(
-                conf.appwriteDatabaseId,
-                conf.appwriteCollectionId,
-                slug,
-                {
-                    title,
-                    content,
-                    featuredImage,
-                    status,
-                }
-            );
-        } catch (error) {
-            console.log("Appwrite serive :: updatePost :: error", error);
-
-        }
+    async updatePost(slug, {title, content, featuredImage, status}){
+    try {
+        return await this.databases.updateDocument(
+            conf.appwriteDatabaseId,
+            conf.appwriteCollectionId,
+            slug,
+            { title, content, featuredImage, status }
+        );
+    } catch (error) {
+        console.error("Appwrite service :: updatePost :: error", error);
+        return null; // Return null so the UI knows the update failed
     }
+}
 
     async deletePost(slug){
         try {
@@ -107,19 +102,19 @@ export class Service{
     }
 
     async deleteFile(fileId){
-        try {
-            await this.bucket.deleteFile(
-                conf.appwriteBucketId,
-                fileId
-            )
-        } catch (error) {
-            console.log("Appwrite serive :: deleteFile :: error", error);
-            return false;
-        }
+    try {
+        await this.bucket.deleteFile(
+            conf.appwriteBucketId,
+            fileId
+        );
+        return true; // Explicit confirmation
+    } catch (error) {
+        console.error("Appwrite service :: deleteFile :: error", error);
+        return false;
     }
-
+}
     getFilePreview(fileId){
-        return this.bucket.getFilePreview(
+        return this.bucket.getFileView(
             conf.appwriteBucketId,
             fileId,
         )
