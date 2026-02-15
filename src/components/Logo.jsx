@@ -4,7 +4,7 @@ function Logo({width = '100px'}) {
   return (
     <div>
     <img
-    src="logoimage.png" alt="logo" />
+    src="https://www.pexels.com/photo/close-up-of-silver-emblem-17357682/" alt="logo" />
     </div>
   )
 }
