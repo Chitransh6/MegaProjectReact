@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { Button, Input, RTE, Select } from "..";
 import appwriteService from "../../appwrite/config";
@@ -6,9 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 export default function PostForm({ post }) {
-    // 1. Added a loader state to handle the "taking time" issue
-    const [loader, setLoader] = useState(false);
-
     const { register, handleSubmit, watch, setValue, control, getValues } = useForm({
         defaultValues: {
             title: post?.title || "",
@@ -22,45 +19,33 @@ export default function PostForm({ post }) {
     const userData = useSelector((state) => state.auth.userData);
 
     const submit = async (data) => {
-        setLoader(true); // Start loading
-        try {
-            if (post) {
-                // UPDATE POST LOGIC
-                const file = data.image[0] ? await appwriteService.uploadFile(data.image[0]) : null;
+        if (post) {
+            const file = data.image[0] ? await appwriteService.uploadFile(data.image[0]) : null;
 
-                if (file) {
-                    await appwriteService.deleteFile(post.featuredImage);
-                }
+            if (file) {
+                appwriteService.deleteFile(post.featuredImage);
+            }
 
-                const dbPost = await appwriteService.updatePost(post.$id, {
-                    ...data,
-                    featuredImage: file ? file.$id : undefined,
-                });
+            const dbPost = await appwriteService.updatePost(post.$id, {
+                ...data,
+                featuredImage: file ? file.$id : undefined,
+            });
+
+            if (dbPost) {
+                navigate(`/post/${dbPost.$id}`);
+            }
+        } else {
+            const file = await appwriteService.uploadFile(data.image[0]);
+
+            if (file) {
+                const fileId = file.$id;
+                data.featuredImage = fileId;
+                const dbPost = await appwriteService.createPost({ ...data, userId: userData.$id });
 
                 if (dbPost) {
                     navigate(`/post/${dbPost.$id}`);
                 }
-            } else {
-                // CREATE POST LOGIC
-                const file = await appwriteService.uploadFile(data.image[0]);
-
-                if (file) {
-                    const fileId = file.$id;
-                    data.featuredImage = fileId;
-                    const dbPost = await appwriteService.createPost({ 
-                        ...data, 
-                        userId: userData.$id 
-                    });
-
-                    if (dbPost) {
-                        navigate(`/post/${dbPost.$id}`);
-                    }
-                }
             }
-        } catch (error) {
-            console.error("PostForm :: submit :: error", error);
-        } finally {
-            setLoader(false); // Stop loading
         }
     };
 
@@ -87,7 +72,7 @@ export default function PostForm({ post }) {
 
     return (
         <form onSubmit={handleSubmit(submit)} className="flex flex-wrap">
-            <div className="w-full lg:w-2/3 px-2">
+            <div className="w-2/3 px-2">
                 <Input
                     label="Title :"
                     placeholder="Title"
@@ -105,7 +90,7 @@ export default function PostForm({ post }) {
                 />
                 <RTE label="Content :" name="content" control={control} defaultValue={getValues("content")} />
             </div>
-            <div className="w-full lg:w-1/3 px-2">
+            <div className="w-1/3 px-2">
                 <Input
                     label="Featured Image :"
                     type="file"
@@ -118,7 +103,7 @@ export default function PostForm({ post }) {
                         <img
                             src={appwriteService.getFilePreview(post.featuredImage)}
                             alt={post.title}
-                            className="rounded-lg shadow-md"
+                            className="rounded-lg"
                         />
                     </div>
                 )}
@@ -128,13 +113,8 @@ export default function PostForm({ post }) {
                     className="mb-4"
                     {...register("status", { required: true })}
                 />
-                <Button 
-                    type="submit" 
-                    bgColor={post ? "bg-green-500" : undefined} 
-                    className="w-full"
-                    disabled={loader} // Disable button while loading
-                >
-                    {loader ? "Saving..." : post ? "Update" : "Submit"}
+                <Button type="submit" bgColor={post ? "bg-green-500" : undefined} className="w-full">
+                    {post ? "Update" : "Submit"}
                 </Button>
             </div>
         </form>
